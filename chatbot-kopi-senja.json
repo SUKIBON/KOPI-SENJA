@@ -1,0 +1,92 @@
+{
+  "name": "Chatbot AI Kopi Senja",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {
+          "title": "Asisten Kopi Senja",
+          "subtitle": "Tanya seputar menu, harga, dan jam buka"
+        }
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "webhookId": "kopi-senja-chat"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "# Peran\nKamu adalah asisten layanan pelanggan Kopi Senja yang ramah, sopan, dan menggunakan bahasa Indonesia santai.\n\n# Tugas\nJawab pertanyaan pelanggan tentang menu, harga, jam buka, lokasi, dan cara pemesanan Kopi Senja.\n\n# Informasi Kopi Senja\n- Jam buka: setiap hari 08.00 - 22.00 WIB\n- Lokasi: Jl. Melati No. 10, Tangerang\n- Pemesanan: datang langsung, atau lewat WhatsApp 0812-0000-0000\n- Menu kopi: Espresso Rp18.000, Americano Rp20.000, Cafe Latte Rp26.000, Kopi Susu Senja Rp22.000\n- Menu non-kopi: Matcha Latte Rp27.000, Coklat Panas Rp24.000, Teh Tarik Rp18.000\n- Makanan: Roti Bakar Rp20.000, Kentang Goreng Rp18.000, Croissant Rp25.000\n\n# Batasan\n- Jawab hanya berdasarkan informasi di atas.\n- Jika informasi tidak tersedia, jawab dengan jujur bahwa kamu belum punya informasinya dan arahkan pelanggan menghubungi WhatsApp Kopi Senja.\n- Jangan mengarang harga, menu, atau promo.\n- Jika pertanyaan di luar topik Kopi Senja, tolak dengan sopan dan arahkan kembali ke topik Kopi Senja.\n\n# Gaya Jawaban\nSingkat, jelas, dan ramah. Gunakan daftar jika menyebutkan beberapa menu."
+        }
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [300, 0]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [200, 260]
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 5
+      },
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [420, 260]
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
