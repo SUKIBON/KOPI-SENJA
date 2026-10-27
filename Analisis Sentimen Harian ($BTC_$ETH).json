@@ -1,0 +1,423 @@
+{
+  "name": "Analisis Sentimen Harian ($BTC_$ETH)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "0ae314bb-cab0-437e-9cea-6494b0616a4a",
+      "name": "Tiap 15 menit",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the sentiment of the following tweet. Respond ONLY with ONE word: 'Positive', 'Negative', or 'Neutral'.\n\nTweet:\n{{ $json.title }}\n{{ $json.link }}\n{{ $json.content }}"
+      },
+      "id": "0b9a2380-1cbc-46c2-8dae-4721304790d7",
+      "name": "Analisis Sentimen",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        704,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1174aPood6fWYVNF7_G6GsgMY8OjEbPzG73f8twII8Iw",
+          "mode": "list",
+          "cachedResultName": "$BTC dan $ETH Sentimen Media Sosial",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1174aPood6fWYVNF7_G6GsgMY8OjEbPzG73f8twII8Iw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Data Mentah",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1174aPood6fWYVNF7_G6GsgMY8OjEbPzG73f8twII8Iw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Waktu": "={{ $now.format('yyyy-MM-dd HH:mm:ss') }}",
+            "Teks": "={{ $('RSS Read').item.json.title }}",
+            "Sentimen": "={{ $json.text }}",
+            "Link": "={{ $('Limit').item.json.link }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Waktu",
+              "displayName": "Waktu",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Link",
+              "displayName": "Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Teks",
+              "displayName": "Teks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Sentimen",
+              "displayName": "Sentimen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "95a038f9-26e8-4cde-9480-b4d80bd23910",
+      "name": "Penyimpanan Hasil",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1072,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NH5w29mjlDC6ecFV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1174aPood6fWYVNF7_G6GsgMY8OjEbPzG73f8twII8Iw",
+          "mode": "list",
+          "cachedResultName": "$BTC dan $ETH Sentimen Media Sosial",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1174aPood6fWYVNF7_G6GsgMY8OjEbPzG73f8twII8Iw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Data Mentah",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1174aPood6fWYVNF7_G6GsgMY8OjEbPzG73f8twII8Iw/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "6720ba85-61f9-4ee4-ab70-8ad24b4a88a9",
+      "name": "Baca Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        240,
+        512
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NH5w29mjlDC6ecFV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\n\nlet total = 0, positif = 0, negatif = 0, netral = 0;\n\nfor (const row of rows) {\n  total++;\n  const raw = row.json['Sentiment'] ?? row.json['sentiment'] ?? row.json['Sentimen'] ?? row.json['sentimen'] ?? '';\n  const s = String(raw).toLowerCase();\n\n  if (s.includes('positive')) positif++;\n  else if (s.includes('negative')) negatif++;\n  else if (s.includes('neutral')) netral++;\n}\n\nreturn [{\n  json: {\n    total_tweets: total,\n    sentimen_positif: positif,\n    sentimen_negatif: negatif,\n    sentimen_netral: netral,\n  },\n}];"
+      },
+      "id": "f45011bb-c97c-4953-8500-b97a4b0d33d9",
+      "name": "Analisis Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Anda adalah seorang analis sentimen media sosial.\nTuliskan kesimpulan singkat (dalam bahasa Indonesia) untuk laporan Telegram, berdasarkan data berikut:\n\n- Total Tweet Dianalisis: {{ $json.total_tweets }}\n- Sentimen Positif: {{ $json.sentimen_positif }}\n- Sentimen Negatif: {{ $json.sentimen_negatif }}\n- Sentimen Netral: {{ $json.sentimen_netral }}\n\nBerikan ringkasan singkat tentang apa arti angka-angka ini (misalnya, \"Sentimen hari ini cenderung positif,\" \"Ada banyak keraguan di pasar,\" dll.).\n\n"
+      },
+      "id": "bd817ee8-dbec-45ee-a105-b14c3d7aa05e",
+      "name": "Membuat Kesimpulan",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "6541829098",
+        "text": "=\n{{ $json.text }}\n",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "37e67d57-89bf-450c-b48d-2c993f8d869c",
+      "name": "Kirim Laporan",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1088,
+        512
+      ],
+      "webhookId": "b6c37088-f947-48d5-b116-303280a57aa9",
+      "credentials": {
+        "telegramApi": {
+          "id": "Payoca716rx726I1",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        -144
+      ],
+      "id": "adc84d46-df6d-478b-97bc-aac4790e5999",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ijf4jqkb1yzUj9iw",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        656,
+        720
+      ],
+      "id": "810f8143-0659-4fa8-a3a7-04b18ff6840d",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ijf4jqkb1yzUj9iw",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://cointelegraph.com/rss/tag/bitcoin\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "72f7de94-0641-4d93-9bdd-e5b917bc4e17",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "9b8a4695-1a14-4fcb-a2a3-9d29a58e90d2",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 16
+            }
+          ]
+        }
+      },
+      "id": "5deece76-4fa9-40e7-ba4c-206a37d36f74",
+      "name": "Tiap Jumat jam 4 Sore",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        512
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Tiap 15 menit": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisis Sentimen": {
+      "main": [
+        [
+          {
+            "node": "Penyimpanan Hasil",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baca Data": {
+      "main": [
+        [
+          {
+            "node": "Analisis Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisis Data": {
+      "main": [
+        [
+          {
+            "node": "Membuat Kesimpulan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Membuat Kesimpulan": {
+      "main": [
+        [
+          {
+            "node": "Kirim Laporan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analisis Sentimen",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Membuat Kesimpulan",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Analisis Sentimen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tiap Jumat jam 4 Sore": {
+      "main": [
+        [
+          {
+            "node": "Baca Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2bb2636d-b3f6-43bf-a1ca-c7641d69f3bb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "8kl7hCceCDXAfTce",
+  "tags": []
+}
