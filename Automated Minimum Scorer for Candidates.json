@@ -1,0 +1,275 @@
+{
+  "name": "Automated Minimum Scorer for Candidates",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "16RZSC6Z2shEnzHQhwloCLXhbYU1csPaMraRW6t5O6EbDNqUtBOtb2VokMM2F9NJTOx1FZrQA",
+          "mode": "list",
+          "cachedResultName": "Upload CV (File responses)",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/16RZSC6Z2shEnzHQhwloCLXhbYU1csPaMraRW6t5O6EbDNqUtBOtb2VokMM2F9NJTOx1FZrQA"
+        },
+        "event": "fileUpdated",
+        "options": {}
+      },
+      "id": "798d34f6-6fc4-4e9b-9d5d-b5919df43e2e",
+      "name": "Google Drive Trigger",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        0
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "jytZozLu5KhQ1AYy",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdf.co/v1/pdf/convert/to/html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "fernando.viryaputra2@gmail.com_GLANT4329evVaXbeN9wToPWkWgsESA8bp8UBtynXcEDrTT2DfXP1d7AXOphLAGBW"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"https://drive.google.com/uc?export=download&id={{ $json.id }}\",\n  \"simple\": true,\n  \"async\": false\n}",
+        "options": {}
+      },
+      "id": "5fb3034c-006e-4e6a-9578-1707d3e48b10",
+      "name": "PDF.co Api (PDF to HTML)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        176,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "7caa2493-af50-4ecd-8c50-ce33de8a6d3e",
+      "name": "Ambil Isi HTML",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let html = $json.body || $json.data || $json.html || \"\";\n\n// 1. Remove scripts, styles, metadata\nhtml = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<meta[\\s\\S]*?>/gi, '')\n  .replace(/<head[\\s\\S]*?<\\/head>/gi, '');\n\n// 2. Convert <li> to dash bullet text\nhtml = html\n  .replace(/<li[^>]*>/gi, '\\n- ')\n  .replace(/<\\/li>/gi, '');\n\n// 3. Convert paragraph & breaks to newline\nhtml = html\n  .replace(/<\\/p>/gi, '\\n')\n  .replace(/<br\\s*\\/?>/gi, '\\n')\n  .replace(/<\\/div>/gi, '\\n');\n\n// 4. Remove all other HTML tags\nhtml = html.replace(/<[^>]+>/g, ' ');\n\n// 5. Remove page numbers often found in PDF → HTML\nhtml = html.replace(/Page \\d+ of \\d+/gi, '');\nhtml = html.replace(/\\bPage\\s*\\d+\\b/gi, '');\nhtml = html.replace(/^\\s*\\d+\\s*$/gm, ''); // single-number lines\n\n// 6. Remove repeated header/footer lines (common in PDFs)\nhtml = html.replace(/Curriculum Vitae|Resume|CV/gi, (m) => `\\n${m}\\n`); \nhtml = html.replace(/©.*\\n/gi, '');\nhtml = html.replace(/All rights reserved.*/gi, '');\n\n// 7. Decode HTML entities\nhtml = html\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&amp;/g, '&')\n  .replace(/&lt;/g, '<')\n  .replace(/&gt;/g, '>')\n  .replace(/&quot;/g, '\"')\n  .replace(/&#39;/g, \"'\");\n\n// 8. Normalize whitespace & line breaks\nhtml = html\n  .replace(/\\n\\s*\\n\\s*\\n+/g, '\\n\\n')\n  .replace(/[ \\t]+/g, ' ')\n  .replace(/\\s+\\n/g, '\\n')\n  .replace(/\\n\\s+/g, '\\n')\n  .trim();\n\nreturn [{\n  json: {\n    clean_text: html\n  }\n}];\n\n"
+      },
+      "id": "13a55738-11ac-409a-b257-4f33e09890b0",
+      "name": "Clean HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3-flash-preview",
+          "mode": "list",
+          "cachedResultName": "Gemini 3 Flash Preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Anda adalah Penganalisis CV yang ahli dalam merekrut Tenaga Pengajar IT.\nAnalisis teks CV berikut secara objektif.\n\nKeluarkan HANYA JSON valid (tanpa penjelasan, tanpa markdown) dengan format:\n{\n  \"candidate_name\": \"nama kandidat\",\n  \"it_keywords\": [\"skill IT yang ditemukan\"],\n  \"teaching_keywords\": [\"kata kunci pengalaman mengajar\"],\n  \"it_score\": 0-10,\n  \"teaching_score\": 0-10,\n  \"summary\": \"ringkasan singkat kecocokan kandidat\"\n}\n\nJika suatu data tidak ada di CV, isi array kosong [] atau skor 0.\n\nTeks CV:\n{{ $json.clean_text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "706e1806-c8f0-4f66-a164-74ed3a753ac4",
+      "name": "Scoring Kandidat",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        832,
+        0
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ijf4jqkb1yzUj9iw",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Ambil teks dari Gemini (gabungkan semua part, abaikan thoughtSignature)\nconst parts = $json.content?.parts || [];\nconst rawText = parts.map(p => p.text || '').join('\\n') || $json.text || '';\n\n// 2. Temukan string JSON\nconst jsonMatch = rawText.match(/\\{([\\s\\S]*)\\}/);\n\n// 3. Cek jika JSON ditemukan\nif (!jsonMatch || !jsonMatch[0]) {\n  throw new Error(\"Tidak dapat menemukan JSON dalam output AI.\");\n}\n\nconst jsonString = jsonMatch[0];\n\n// 4. Ubah menjadi objek JSON\ntry {\n  const jsonData = JSON.parse(jsonString);\n  return [{ json: jsonData }];\n} catch (error) {\n  throw new Error(\"Gagal mem-parsing JSON: \" + error.message);\n}"
+      },
+      "id": "e3c63447-49bf-4dbb-9b16-ffced64356a5",
+      "name": "Parse JSON from AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\n\nconst safeArray = (x) =>\n  Array.isArray(x) && x.length > 0 ? x.join(\", \") : \"-\";\n\nconst msg = `📋 HASIL SELEKSI KANDIDAT\n\n👤 Nama: ${data.candidate_name || \"-\"}\n\n📌 Keyword IT:\n${safeArray(data.it_keywords)}\n\n🎓 Keyword Mengajar:\n${safeArray(data.teaching_keywords)}\n\n📊 Skor Teknis IT: ${data.it_score ?? \"-\"}/10\n📊 Skor Mengajar: ${data.teaching_score ?? \"-\"}/10\n\n📝 Ringkasan:\n${data.summary || \"-\"}`;\n\nreturn [{ json: { message: msg } }];"
+      },
+      "id": "9496fc8d-a7d5-4ab9-8d8a-952768c2c1c0",
+      "name": "Format Output untuk Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "6541829098",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "38f08d94-f315-48ee-b65e-060d78a550ec",
+      "name": "Send a text message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1504,
+        0
+      ],
+      "webhookId": "c708fcc0-b30b-4211-b1b0-c8cf4911b014",
+      "credentials": {
+        "telegramApi": {
+          "id": "Payoca716rx726I1",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "PDF.co Api (PDF to HTML)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF.co Api (PDF to HTML)": {
+      "main": [
+        [
+          {
+            "node": "Ambil Isi HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil Isi HTML": {
+      "main": [
+        [
+          {
+            "node": "Clean HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean HTML": {
+      "main": [
+        [
+          {
+            "node": "Scoring Kandidat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scoring Kandidat": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON from AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON from AI": {
+      "main": [
+        [
+          {
+            "node": "Format Output untuk Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Output untuk Telegram": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e6059fa1-828e-4533-a88f-af894ac77e35",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "rSrhUtSque8VS5Rw",
+  "tags": []
+}
